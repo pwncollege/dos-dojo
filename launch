@@ -3,13 +3,21 @@
 set -euo pipefail
 umask 077
 
-cd /challenge
+SCRIPT_DIR="$(dirname "$(realpath "$BASH_SOURCE[0]")")"
 
-mkdir -p "/challenge/work"
+if [[ "$SCRIPT_DIR" = /challenge/* ]]
+then
+	WORK_DIR="/challenge/work"
+else
+	WORK_DIR=$(mktemp -d)
+fi
 
-DOS_IMG="/challenge/work/qemu-dos-$$.raw"
-MONITOR_PIPE="/challenge/work/qemu-monitor-$$"
-SNAPSHOT_FILE="/challenge/work/dos-snapshot"
+mkdir -p "$WORK_DIR"
+
+DISK_DIR="$SCRIPT_DIR/floppies"
+DOS_IMG="$WORK_DIR/qemu-dos-$$.raw"
+MONITOR_PIPE="$WORK_DIR/qemu-monitor-$$"
+SNAPSHOT_FILE="$WORK_DIR/dos-snapshot"
 
 BRIDGE_NAME="br-qemu$$"
 TAP_DOS="tap-dos$$"
@@ -122,7 +130,7 @@ monitor_menu() {
         case "$choice" in
             load)
                 # Build list of floppy images
-                mapfile -t disks < <(find "/challenge/disks" -type f 2>/dev/null | sort)
+                mapfile -t disks < <(find "$DISK_DIR" -type f 2>/dev/null | sort)
 
                 if [ ${#disks[@]} -eq 0 ]; then
                     whiptail --title "Error" --msgbox "No floppy images found in disks/" $((menu_height / 2)) $((menu_width / 2))
@@ -132,7 +140,7 @@ monitor_menu() {
                 # Build menu items for whiptail
                 menu_items=()
                 for i in "${!disks[@]}"; do
-                    rel_path="${disks[$i]#/challenge/disks/}"
+                    rel_path="${disks[$i]#$DISK_DIR}"
                     menu_items+=("$i" "$rel_path")
                 done
 
@@ -142,7 +150,7 @@ monitor_menu() {
 
                 selected="${disks[$disk_choice]}"
                 echo "change floppy0 $selected" > "$monitor_fifo"
-                whiptail --title "Success" --msgbox "Loaded: ${selected#/challenge/}" $((menu_height / 2)) $menu_width
+                whiptail --title "Success" --msgbox "Loaded: ${selected#$WORK_DIR/}" $((menu_height / 2)) $menu_width
                 ;;
             paste|paste-home)
                 # Get clipboard contents
@@ -207,8 +215,8 @@ cleanup() {
     exit 0
 }
 
-umask 077
 trap cleanup EXIT INT TERM
+
 
 if [ -f "$SNAPSHOT_FILE" ]; then
     cp "$SNAPSHOT_FILE" "$DOS_IMG"
