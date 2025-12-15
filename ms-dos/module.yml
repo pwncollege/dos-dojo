@@ -8,3 +8,5 @@ challenges:
   name: Reading Floppies
 - id: install
   name: Installing MS-DOS
+- id: autoexec
+  name: autoexec.bat
