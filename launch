@@ -1,4 +1,4 @@
-#!/usr/bin/exec-suid --real -- /bin/bash
+#!/usr/bin/exec-suid --real -- /bin/bash -p
 
 set -euo pipefail
 umask 077
