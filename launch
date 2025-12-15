@@ -23,8 +23,6 @@ MONITOR_PIPE="$WORK_DIR/qemu-monitor"
 SNAPSHOT_FILE="$WORK_DIR/snapshot"
 DISK_SIZE="${DISK_SIZE:-128M}"
 
-cp "$SCRIPT_DIR/drive-c" "$SNAPSHOT_FILE" 2>/dev/null || true
-
 BRIDGE_NAME="br-qemu$$"
 TAP_DOS="tap-dos$$"
 FLAG_NS="nsflag$$"
@@ -224,6 +222,8 @@ trap cleanup EXIT INT TERM
 
 if [ -f "$SNAPSHOT_FILE" ]; then
     cp "$SNAPSHOT_FILE" "$DRIVE_C"
+elif [ -f "$SCRIPT_DIR/drive-c" ]; then
+    cp "$SCRIPT_DIR/drive-c" "$DRIVE_C"
 else
     qemu-img create -f raw "$DRIVE_C" "$DISK_SIZE"
     parted "$DRIVE_C" --script mklabel msdos mkpart primary fat32 1MiB 100% set 1 boot on 2>/dev/null
@@ -249,7 +249,7 @@ ip netns exec "$FLAG_NS" ip addr add "${FLAG_SERVER_IP}/24" dev "$VETH_NS"
 if cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=network"; then
     ip netns exec "$FLAG_NS" socat "TCP-LISTEN:${FLAG_SERVER_PORT},bind=${FLAG_SERVER_IP},reuseaddr,fork" SYSTEM:"cat /flag" &
     FLAG_SERVER_PID=$!
-elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=drive_c"; then
+elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=c"; then
     # Set up loop device with partition scanning
     LOOP_DEV=$(losetup --find --show --partscan "$DRIVE_C")
     PART_DEV="${LOOP_DEV}p1"
@@ -265,12 +265,12 @@ elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=drive_c"; then
     umount "$MOUNT_POINT"
     rmdir "$MOUNT_POINT"
     losetup -d "$LOOP_DEV"
-elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=drive_d"; then
-    qemu-img create -f raw "$WORK_DIR/drive_d" "$DISK_SIZE"
-    parted "$WORK_DIR/drive_d" --script mklabel msdos mkpart primary fat32 1MiB 100% set 1 boot on 2>/dev/null
+elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=d"; then
+    qemu-img create -f raw "$WORK_DIR/drive-d" "$DISK_SIZE"
+    parted "$WORK_DIR/drive-d" --script mklabel msdos mkpart primary fat32 1MiB 100% set 1 boot on 2>/dev/null
 
     # Set up loop device with partition scanning and format
-    LOOP_DEV=$(losetup --find --show --partscan "$WORK_DIR/drive_d")
+    LOOP_DEV=$(losetup --find --show --partscan "$WORK_DIR/drive-d")
     PART_DEV="${LOOP_DEV}p1"
     mkfs.vfat -F 32 "$PART_DEV"
     MOUNT_POINT=$(mktemp -d)
@@ -284,10 +284,10 @@ fi
 mkfifo "${MONITOR_PIPE}.in"
 mkfifo "${MONITOR_PIPE}.out"
 
-if [ -f "$WORK_DIR/drive_d" ]; then
-    DRIVE_D="-drive file="$WORK_DIR/drive_d",format=raw,if=ide"
-elif [ -f "$CHALLENGE_DIR/drive_d" ]; then
-    DRIVE_D="-drive file="$CHALLENGE_DIR/drive_d",format=raw,if=ide"
+if [ -f "$WORK_DIR/drive-d" ]; then
+    DRIVE_D="-drive file="$WORK_DIR/drive-d",format=raw,if=ide"
+elif [ -f "$CHALLENGE_DIR/drive-d" ]; then
+    DRIVE_D="-drive file="$CHALLENGE_DIR/drive-d",format=raw,if=ide"
 else
     DRIVE_D=""
 fi
