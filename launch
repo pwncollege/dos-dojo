@@ -264,7 +264,7 @@ qemu-system-x86_64 \
 DOS_PID=$!
 
 # Open the output pipe to prevent blocking, discard output
-cat "${MONITOR_PIPE}.out" > /dev/null &
+cat "${MONITOR_PIPE}.out" > "${MONITOR_PIPE}.log" &
 CAT_PID=$!
 
 # Wait a moment for QEMU to open the pipes
