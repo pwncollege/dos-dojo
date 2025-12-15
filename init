@@ -1,0 +1,3 @@
+#!/bin/bash
+
+[ -f /challenge/.config.ini ] && chmod 644 /challenge/config.ini
