@@ -17,7 +17,10 @@ mkdir -p "$WORK_DIR"
 DISK_DIR="$SCRIPT_DIR/floppies"
 DOS_IMG="$WORK_DIR/qemu-dos-$$.raw"
 MONITOR_PIPE="$WORK_DIR/qemu-monitor-$$"
-SNAPSHOT_FILE="$WORK_DIR/dos-snapshot"
+SNAPSHOT_FILE="$WORK_DIR/snapshot"
+DISK_SIZE="${DISK_SIZE:-128M}"
+
+cp "$SCRIPT_DIR/snapshot" "$SNAPSHOT_FILE" 2>/dev/null || true
 
 BRIDGE_NAME="br-qemu$$"
 TAP_DOS="tap-dos$$"
@@ -184,7 +187,6 @@ monitor_menu() {
                 # Commit any pending writes to disk
                 echo "commit ide0-hd0" > "$monitor_fifo"
                 sleep 1
-                # Copy the disk image to dos-snapshot
                 cp "$DOS_IMG" "$SNAPSHOT_FILE"
                 whiptail --title "Success" --msgbox "Snapshot saved" $((menu_height / 2)) $menu_width
                 ;;
@@ -221,7 +223,7 @@ trap cleanup EXIT INT TERM
 if [ -f "$SNAPSHOT_FILE" ]; then
     cp "$SNAPSHOT_FILE" "$DOS_IMG"
 else
-    qemu-img create -f raw "$DOS_IMG" 512M
+    qemu-img create -f raw "$DOS_IMG" "$DISK_SIZE"
     parted "$DOS_IMG" --script mklabel msdos mkpart primary fat32 1MiB 100% set 1 boot on 2>/dev/null
 fi
 
