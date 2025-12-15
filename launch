@@ -346,6 +346,23 @@ EOF
     losetup -d "$LOOP_DEV"
 fi
 
+# Copy challenge files from c_files/ directory to C: drive
+if [ -d "$CHALLENGE_DIR/c_files" ] && [ "$(ls -A "$CHALLENGE_DIR/c_files" 2>/dev/null)" ]; then
+    LOOP_DEV=$(losetup --find --show --partscan "$DRIVE_C")
+    PART_DEV="${LOOP_DEV}p1"
+    MOUNT_POINT=$(mktemp -d)
+
+    if ! mount "$PART_DEV" "$MOUNT_POINT" 2>/dev/null; then
+        mkfs.vfat -F 32 "$PART_DEV"
+        mount "$PART_DEV" "$MOUNT_POINT"
+    fi
+
+    cp -r "$CHALLENGE_DIR/c_files/"* "$MOUNT_POINT/"
+    umount "$MOUNT_POINT"
+    rmdir "$MOUNT_POINT"
+    losetup -d "$LOOP_DEV"
+fi
+
 mkfifo "${MONITOR_PIPE}.in"
 mkfifo "${MONITOR_PIPE}.out"
 
