@@ -7,20 +7,23 @@ SCRIPT_DIR="$(dirname "$(realpath "$BASH_SOURCE[0]")")"
 
 if [[ "$SCRIPT_DIR" = /challenge/* ]]
 then
-	WORK_DIR="/challenge/work"
+    WORK_DIR="/challenge/work"
+    CHALLENGE_DIR="/challenge"
 else
-	WORK_DIR=$(mktemp -d)
+    WORK_DIR=$(mktemp -d)
+    SCRIPT_DIR="$(dirname "$BASH_SOURCE[0]")"
+    CHALLENGE_DIR="$SCRIPT_DIR"
 fi
 
 mkdir -p "$WORK_DIR"
 
 DISK_DIR="$SCRIPT_DIR/floppies"
-DOS_IMG="$WORK_DIR/qemu-dos-$$.raw"
-MONITOR_PIPE="$WORK_DIR/qemu-monitor-$$"
+DRIVE_C="$WORK_DIR/drive-c.raw"
+MONITOR_PIPE="$WORK_DIR/qemu-monitor"
 SNAPSHOT_FILE="$WORK_DIR/snapshot"
 DISK_SIZE="${DISK_SIZE:-128M}"
 
-cp "$SCRIPT_DIR/snapshot" "$SNAPSHOT_FILE" 2>/dev/null || true
+cp "$SCRIPT_DIR/drive-c" "$SNAPSHOT_FILE" 2>/dev/null || true
 
 BRIDGE_NAME="br-qemu$$"
 TAP_DOS="tap-dos$$"
@@ -132,8 +135,7 @@ monitor_menu() {
 
         case "$choice" in
             load)
-                # Build list of floppy images
-                mapfile -t disks < <(find "$DISK_DIR" -type f 2>/dev/null | sort)
+                [ -d "$DISK_DIR" ] && mapfile -t disks < <(find "$DISK_DIR" -type f 2>/dev/null | sort) || disks=( )
 
                 if [ ${#disks[@]} -eq 0 ]; then
                     whiptail --title "Error" --msgbox "No floppy images found in disks/" $((menu_height / 2)) $((menu_width / 2))
@@ -187,7 +189,7 @@ monitor_menu() {
                 # Commit any pending writes to disk
                 echo "commit ide0-hd0" > "$monitor_fifo"
                 sleep 1
-                cp "$DOS_IMG" "$SNAPSHOT_FILE"
+                cp "$DRIVE_C" "$SNAPSHOT_FILE"
                 whiptail --title "Success" --msgbox "Snapshot saved" $((menu_height / 2)) $menu_width
                 ;;
             reboot)
@@ -213,7 +215,7 @@ cleanup() {
     ip link del "$VETH_HOST" 2>/dev/null || true
     ip link set "$BRIDGE_NAME" down 2>/dev/null || true
     ip link del "$BRIDGE_NAME" 2>/dev/null || true
-    rm -f "$DOS_IMG"
+    rm -f "$DRIVE_C"
     exit 0
 }
 
@@ -221,10 +223,10 @@ trap cleanup EXIT INT TERM
 
 
 if [ -f "$SNAPSHOT_FILE" ]; then
-    cp "$SNAPSHOT_FILE" "$DOS_IMG"
+    cp "$SNAPSHOT_FILE" "$DRIVE_C"
 else
-    qemu-img create -f raw "$DOS_IMG" "$DISK_SIZE"
-    parted "$DOS_IMG" --script mklabel msdos mkpart primary fat32 1MiB 100% set 1 boot on 2>/dev/null
+    qemu-img create -f raw "$DRIVE_C" "$DISK_SIZE"
+    parted "$DRIVE_C" --script mklabel msdos mkpart primary fat32 1MiB 100% set 1 boot on 2>/dev/null
 fi
 
 ip link add "$BRIDGE_NAME" type bridge
@@ -244,17 +246,58 @@ ip netns exec "$FLAG_NS" ip link set lo up
 ip netns exec "$FLAG_NS" ip link set "$VETH_NS" up
 ip netns exec "$FLAG_NS" ip addr add "${FLAG_SERVER_IP}/24" dev "$VETH_NS"
 
-ip netns exec "$FLAG_NS" socat "TCP-LISTEN:${FLAG_SERVER_PORT},bind=${FLAG_SERVER_IP},reuseaddr,fork" SYSTEM:"cat /flag" &
-FLAG_SERVER_PID=$!
+if cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=network"; then
+    ip netns exec "$FLAG_NS" socat "TCP-LISTEN:${FLAG_SERVER_PORT},bind=${FLAG_SERVER_IP},reuseaddr,fork" SYSTEM:"cat /flag" &
+    FLAG_SERVER_PID=$!
+elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=drive_c"; then
+    # Set up loop device with partition scanning
+    LOOP_DEV=$(losetup --find --show --partscan "$DRIVE_C")
+    PART_DEV="${LOOP_DEV}p1"
+    MOUNT_POINT=$(mktemp -d)
+
+    # Try to mount - if it fails, format first
+    if ! mount "$PART_DEV" "$MOUNT_POINT" 2>/dev/null; then
+        mkfs.vfat -F 32 "$PART_DEV"
+        mount "$PART_DEV" "$MOUNT_POINT"
+    fi
+
+    cp /flag "$MOUNT_POINT/FLAG.TXT"
+    umount "$MOUNT_POINT"
+    rmdir "$MOUNT_POINT"
+    losetup -d "$LOOP_DEV"
+elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=drive_d"; then
+    qemu-img create -f raw "$WORK_DIR/drive_d" "$DISK_SIZE"
+    parted "$WORK_DIR/drive_d" --script mklabel msdos mkpart primary fat32 1MiB 100% set 1 boot on 2>/dev/null
+
+    # Set up loop device with partition scanning and format
+    LOOP_DEV=$(losetup --find --show --partscan "$WORK_DIR/drive_d")
+    PART_DEV="${LOOP_DEV}p1"
+    mkfs.vfat -F 32 "$PART_DEV"
+    MOUNT_POINT=$(mktemp -d)
+    mount "$PART_DEV" "$MOUNT_POINT"
+    cp /flag "$MOUNT_POINT/FLAG.TXT"
+    umount "$MOUNT_POINT"
+    rmdir "$MOUNT_POINT"
+    losetup -d "$LOOP_DEV"
+fi
 
 mkfifo "${MONITOR_PIPE}.in"
 mkfifo "${MONITOR_PIPE}.out"
+
+if [ -f "$WORK_DIR/drive_d" ]; then
+    DRIVE_D="-drive file="$WORK_DIR/drive_d",format=raw,if=ide"
+elif [ -f "$CHALLENGE_DIR/drive_d" ]; then
+    DRIVE_D="-drive file="$CHALLENGE_DIR/drive_d",format=raw,if=ide"
+else
+    DRIVE_D=""
+fi
 
 qemu-system-x86_64 \
     -name dos \
     -m 16M \
     -smp 1 \
-    -drive file="$DOS_IMG",format=raw,if=ide \
+    -drive file="$DRIVE_C",format=raw,if=ide \
+    $DRIVE_D \
     -boot d \
     -netdev tap,id=net0,ifname="$TAP_DOS",script=no,downscript=no \
     -device pcnet,netdev=net0,mac=52:54:00:12:34:56 \
