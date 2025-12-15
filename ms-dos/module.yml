@@ -1,0 +1,10 @@
+name: The Great MS-DOS
+challenges:
+- id: type
+  name: cat /flag
+- id: d
+  name: Changing Disks
+- id: a
+  name: Reading Floppies
+- id: install
+  name: Installing MS-DOS

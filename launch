@@ -135,21 +135,26 @@ monitor_menu() {
         case "$choice" in
             load)
                 disks=()
-                [ -d "$DISK_DIR" ] && mapfile -t disks < <(find "$DISK_DIR" -type f 2>/dev/null | sort)
+                [ -d "$DISK_DIR" ] && mapfile -t disks < <(find -L "$DISK_DIR" -type f 2>/dev/null | sort)
                 # Also include any floppy images in the work directory
                 while IFS= read -r -d '' f; do
                     disks+=("$f")
-                done < <(find "$WORK_DIR" -maxdepth 1 -name "*.img" -print0 2>/dev/null | sort -z)
+                done < <(find -L "$WORK_DIR" -maxdepth 1 -name "*.img" -print0 2>/dev/null | sort -z)
 
                 if [ ${#disks[@]} -eq 0 ]; then
                     whiptail --title "Error" --msgbox "No floppy images found in disks/" $((menu_height / 2)) $((menu_width / 2))
                     continue
                 fi
 
-                # Build menu items for whiptail
                 menu_items=()
                 for i in "${!disks[@]}"; do
-                    rel_path="${disks[$i]#$DISK_DIR}"
+                    disk_path="${disks[$i]}"
+                    if [[ "$disk_path" == "$WORK_DIR"/* ]]; then
+                        rel_path="$(basename "$disk_path")"
+                    else
+                        # Strip DISK_DIR and leading slash
+                        rel_path="${disk_path#$DISK_DIR/}"
+                    fi
                     menu_items+=("$i" "$rel_path")
                 done
 

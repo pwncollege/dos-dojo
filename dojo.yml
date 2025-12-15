@@ -1,0 +1,8 @@
+id: "dos-dojo"
+name: DOS Dojo
+image: pwncollege/dos-dojo:latest
+type: public
+award:
+  emoji: 💾
+modules:
+- id: "ms-dos"
