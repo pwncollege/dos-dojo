@@ -277,12 +277,16 @@ elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=c"; then
     rmdir "$MOUNT_POINT"
     losetup -d "$LOOP_DEV"
 elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=d"; then
-    qemu-img create -f raw "$WORK_DIR/drive-d" "$DISK_SIZE"
-    parted "$WORK_DIR/drive-d" --script mklabel msdos mkpart primary fat32 1MiB 100% set 1 boot on 2>/dev/null
+    # DOS is picky: 16MB, FAT12, partition starting at sector 32
+    qemu-img create -f raw "$WORK_DIR/drive-d" 16M
+    sfdisk "$WORK_DIR/drive-d" >/dev/null 2>&1 <<EOF
+label: dos
+start=32, type=0x01, bootable
+EOF
 
     LOOP_DEV=$(losetup --find --show --partscan "$WORK_DIR/drive-d")
     PART_DEV="${LOOP_DEV}p1"
-    mkfs.vfat -F 32 "$PART_DEV"
+    mkfs.vfat -F 12 "$PART_DEV"
     MOUNT_POINT=$(mktemp -d)
     mount "$PART_DEV" "$MOUNT_POINT"
     cp /flag "$MOUNT_POINT/FLAG.TXT"
@@ -295,9 +299,9 @@ mkfifo "${MONITOR_PIPE}.in"
 mkfifo "${MONITOR_PIPE}.out"
 
 if [ -f "$WORK_DIR/drive-d" ]; then
-    DRIVE_D="-drive file="$WORK_DIR/drive-d",format=raw,if=ide"
+    DRIVE_D="-drive file="$WORK_DIR/drive-d",format=raw,if=ide,index=2"
 elif [ -f "$CHALLENGE_DIR/drive-d" ]; then
-    DRIVE_D="-drive file="$CHALLENGE_DIR/drive-d",format=raw,if=ide"
+    DRIVE_D="-drive file="$CHALLENGE_DIR/drive-d",format=raw,if=ide,index=2"
 else
     DRIVE_D=""
 fi
