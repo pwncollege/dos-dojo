@@ -125,6 +125,7 @@ monitor_menu() {
             "load"      "Load floppy disk" \
             "paste"     "Paste clipboard contents" \
             "paste-home" "Paste clipboard (Home after newline)" \
+            "copy"      "Copy screen text to clipboard" \
             "eject"     "Eject floppy" \
             "snapshot"  "Snapshot disk" \
             "reboot"    "Reboot system" \
@@ -182,6 +183,51 @@ monitor_menu() {
                     type_content "$monitor_fifo" "$content"
                 fi
                 whiptail --title "Success" --msgbox "Finished pasting clipboard contents" $((menu_height / 2)) $menu_width
+                ;;
+            copy)
+                # Dump VGA text mode memory (0xB8000 = 753664, 80x25 chars * 2 bytes each = 4000 bytes)
+                local vga_dump="$WORK_DIR/vga_dump.bin"
+                whiptail --title "Copy" --infobox "Reading screen text..." $((menu_height / 3)) $((menu_width / 2))
+                echo "pmemsave 753664 4000 \"$vga_dump\"" > "$monitor_fifo"
+                sleep 0.5
+
+                if [ ! -f "$vga_dump" ]; then
+                    whiptail --title "Error" --msgbox "Failed to dump VGA memory" $((menu_height / 2)) $menu_width
+                    continue
+                fi
+
+                # Extract ASCII characters (every other byte, skip attribute bytes)
+                # Convert to 80-char lines and strip trailing spaces
+                local screen_text
+                screen_text=$(od -An -tx1 -v "$vga_dump" | tr -d ' \n' | sed 's/../& /g' | awk '{
+                    for (i=1; i<=NF; i+=2) {
+                        hex = $i
+                        dec = strtonum("0x" hex)
+                        if (dec >= 32 && dec <= 126) printf "%c", dec
+                        else printf " "
+                    }
+                }' | fold -w 80 | sed 's/[[:space:]]*$//')
+
+                # Remove trailing blank lines
+                screen_text=$(echo "$screen_text" | sed -e :a -e '/^[[:space:]]*$/d;N;ba' -e 's/\n$//')
+
+                rm -f "$vga_dump"
+
+                if [ -z "$screen_text" ]; then
+                    whiptail --title "Error" --msgbox "No text found (system may be in graphics mode)" $((menu_height / 2)) $menu_width
+                    continue
+                fi
+
+                # Copy to clipboard
+                echo -n "$screen_text" | xclip -selection clipboard 2>/dev/null || \
+                echo -n "$screen_text" | xsel --clipboard --input 2>/dev/null || {
+                    whiptail --title "Error" --msgbox "Failed to copy to clipboard (xclip/xsel not available)" $((menu_height / 2)) $menu_width
+                    continue
+                }
+
+                local line_count
+                line_count=$(echo "$screen_text" | wc -l)
+                whiptail --title "Success" --msgbox "Copied $line_count lines to clipboard" $((menu_height / 2)) $menu_width
                 ;;
             eject)
                 echo "eject floppy0" > "$monitor_fifo"
