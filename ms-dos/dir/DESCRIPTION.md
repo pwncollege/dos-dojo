@@ -24,7 +24,7 @@ Look familiar?
 The same basic information is there, with three clear differences:
 
 - First, everything is upper case? DOS filenames were case-insensitive! You can address `FLAG.TXT` as `flag.txt`, `Flag.TXT`, `fLaG.TxT`, or whatever casing you prefer!
-- Second, DOS assumed that every file had a name of 8 characters or less and an "extension" (after the one allowed `.` in the filename) of 3 characters or less. You can see that assumption in the layout of the first two colums! The authors of `dir` expected you to mentally slot the `.` in there between the name and extension.
+- Second, DOS assumed that every file had a name of 8 characters or less and an "extension" (after the one allowed `.` in the filename) of 3 characters or less. You can see that assumption in the layout of the first two columns! The authors of `dir` expected you to mentally slot the `.` in there between the name and extension.
 - Third, there is no permission or ownership information. DOS simply didn't have that. Simpler times!
 
 This level renames `flag.txt` to `flgXYZ.img`, with random numbers for X, Y, and Z.
