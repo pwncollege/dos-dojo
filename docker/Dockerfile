@@ -13,6 +13,7 @@ RUN apt-get update && \
         socat \
         xclip \
         fdisk \
+        gawk \
         xsel \
     && rm -rf /var/lib/apt/lists/*
 
