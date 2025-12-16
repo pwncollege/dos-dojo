@@ -369,5 +369,11 @@ CAT_PID=$!
 # Wait a moment for QEMU to open the pipes
 sleep 1
 
+if [ -d "$CHALLENGE_DIR/launch.d" ]; then
+    for script in "$CHALLENGE_DIR/launch.d"/*; do
+        [ -f "$script" ] && [ -x "$script" ] && source "$script" "${MONITOR_PIPE}.in"
+    done
+fi
+
 monitor_menu "${MONITOR_PIPE}.in"
 wait $DOS_PID 2>/dev/null || true
