@@ -275,6 +275,9 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
+for i in $(seq 0 7); do
+    [ -e /dev/loop$i ] || mknod /dev/loop$i b 7 $i
+done
 
 if [ -f "$SNAPSHOT_FILE" ]; then
     cp "$SNAPSHOT_FILE" "$DRIVE_C"
