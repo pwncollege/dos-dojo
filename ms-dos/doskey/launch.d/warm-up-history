@@ -18,13 +18,15 @@ for i in {1..30}; do
     sleep 0.1
 done
 
-# Get the flag and split into three parts
+# Get the flag and split into five parts
 read FLAG</flag
 LEN=${#FLAG}
-PART_LEN=$(( (LEN + 2) / 3 ))
+PART_LEN=$(( (LEN + 4) / 5 ))
 PART1=${FLAG:0:$PART_LEN}
 PART2=${FLAG:$PART_LEN:$PART_LEN}
-PART3=${FLAG:$((PART_LEN * 2))}
+PART3=${FLAG:$((PART_LEN * 2)):$PART_LEN}
+PART4=${FLAG:$((PART_LEN * 3)):$PART_LEN}
+PART5=${FLAG:$((PART_LEN * 4))}
 
 # Echo part 1, cls
 type_content "$MONITOR_FIFO" "echo $PART1" ""
@@ -44,6 +46,22 @@ sleep 0.05
 
 # Echo part 3, cls
 type_content "$MONITOR_FIFO" "echo $PART3" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.05
+type_content "$MONITOR_FIFO" "cls" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.05
+
+# Echo part 4, cls
+type_content "$MONITOR_FIFO" "echo $PART4" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.05
+type_content "$MONITOR_FIFO" "cls" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.05
+
+# Echo part 5, cls
+type_content "$MONITOR_FIFO" "echo $PART5" ""
 echo "sendkey ret" > "$MONITOR_FIFO"
 sleep 0.05
 type_content "$MONITOR_FIFO" "cls" ""
