@@ -10,3 +10,5 @@ challenges:
   name: Installing MS-DOS
 - id: autoexec
   name: autoexec.bat
+- id: networking
+  name: MS-DOS Networking

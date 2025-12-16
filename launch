@@ -346,8 +346,8 @@ EOF
     losetup -d "$LOOP_DEV"
 fi
 
-# Copy challenge files from c_files/ directory to C: drive
-if [ -d "$CHALLENGE_DIR/c_files" ] && [ "$(ls -A "$CHALLENGE_DIR/c_files" 2>/dev/null)" ]; then
+# Copy challenge files from c_files/ directory to C: drive (only on fresh start, not from snapshot)
+if [ ! -f "$SNAPSHOT_FILE" ] && [ -d "$CHALLENGE_DIR/c_files" ] && [ "$(ls -A "$CHALLENGE_DIR/c_files" 2>/dev/null)" ]; then
     LOOP_DEV=$(losetup --find --show --partscan "$DRIVE_C")
     PART_DEV="${LOOP_DEV}p1"
     MOUNT_POINT=$(mktemp -d)
