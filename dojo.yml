@@ -4,5 +4,6 @@ image: pwncollege/dos-dojo:latest
 type: public
 award:
   emoji: 💾
+privileged: true
 modules:
 - id: "ms-dos"
