@@ -317,19 +317,14 @@ elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=a"; then
     umount "$MOUNT_POINT"
     rmdir "$MOUNT_POINT"
 elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=c"; then
-    LOOP_DEV=$(losetup --find --show --partscan "$DRIVE_C")
-    PART_DEV="${LOOP_DEV}p1"
+    PART_OFFSET=$(fdisk -l "$DRIVE_C" -o Start | tail -1)
+    PART_DEV=$(losetup --find --show --offset $((PART_OFFSET * 512)) "$DRIVE_C")
     MOUNT_POINT=$(mktemp -d)
-
-    if ! mount "$PART_DEV" "$MOUNT_POINT" 2>/dev/null; then
-        mkfs.vfat -F 32 "$PART_DEV"
-        mount "$PART_DEV" "$MOUNT_POINT"
-    fi
-
+    mount "$PART_DEV" "$MOUNT_POINT"
     cp /flag "$MOUNT_POINT/FLAG.TXT"
     umount "$MOUNT_POINT"
     rmdir "$MOUNT_POINT"
-    losetup -d "$LOOP_DEV"
+    losetup -d "$PART_DEV"
 elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=d"; then
     # DOS is picky: 16MB, FAT12, partition starting at sector 32
     qemu-img create -f raw "$WORK_DIR/drive-d" 16M
@@ -338,21 +333,21 @@ label: dos
 start=32, type=0x01, bootable
 EOF
 
-    LOOP_DEV=$(losetup --find --show --partscan "$WORK_DIR/drive-d")
-    PART_DEV="${LOOP_DEV}p1"
+    # Partition starts at sector 32 (32 * 512 = 16384 bytes)
+    PART_DEV=$(losetup --find --show --offset 16384 "$WORK_DIR/drive-d")
     mkfs.vfat -F 12 "$PART_DEV"
     MOUNT_POINT=$(mktemp -d)
     mount "$PART_DEV" "$MOUNT_POINT"
     cp /flag "$MOUNT_POINT/FLAG.TXT"
     umount "$MOUNT_POINT"
     rmdir "$MOUNT_POINT"
-    losetup -d "$LOOP_DEV"
+    losetup -d "$PART_DEV"
 fi
 
 # Copy challenge files from c_files/ directory to C: drive (only on fresh start, not from snapshot)
 if [ ! -f "$SNAPSHOT_FILE" ] && [ -d "$CHALLENGE_DIR/c_files" ] && [ "$(ls -A "$CHALLENGE_DIR/c_files" 2>/dev/null)" ]; then
-    LOOP_DEV=$(losetup --find --show --partscan "$DRIVE_C")
-    PART_DEV="${LOOP_DEV}p1"
+    PART_OFFSET=$(fdisk -l "$DRIVE_C" -o Start | tail -1)
+    PART_DEV=$(losetup --find --show --offset $((PART_OFFSET * 512)) "$DRIVE_C")
     MOUNT_POINT=$(mktemp -d)
 
     if ! mount "$PART_DEV" "$MOUNT_POINT" 2>/dev/null; then
@@ -363,7 +358,7 @@ if [ ! -f "$SNAPSHOT_FILE" ] && [ -d "$CHALLENGE_DIR/c_files" ] && [ "$(ls -A "$
     cp -r "$CHALLENGE_DIR/c_files/"* "$MOUNT_POINT/"
     umount "$MOUNT_POINT"
     rmdir "$MOUNT_POINT"
-    losetup -d "$LOOP_DEV"
+    losetup -d "$PART_DEV"
 fi
 
 mkfifo "${MONITOR_PIPE}.in"
