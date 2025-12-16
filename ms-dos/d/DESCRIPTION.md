@@ -7,7 +7,7 @@ In this level, we loaded up the flag to `D:`.
 How to switch drives?
 Just type the letter and a colon:
 
-```
+```text
 C:\> P:
 P:\>
 ```

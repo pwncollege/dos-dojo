@@ -11,7 +11,7 @@ What the heck is the `C` drive?
 Roughly speaking, it's the DOS equivalent of `/`: it's the primary disk of the machine.
 The top-level directory of the `C:` drive is where DOS puts you when it boots up:
 
-```
+```text
 Booting from Hard Disk...
 Starting MS-DOS...
 
