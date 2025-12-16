@@ -15,11 +15,8 @@ for i in {1..30}; do
     if echo "$screen" | grep -q 'C:\\>'; then
         break
     fi
-    sleep 0.5
+    sleep 0.1
 done
-
-# Extra second for good measure
-sleep 1
 
 # Get the flag and split into three parts
 read FLAG</flag
