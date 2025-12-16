@@ -3,16 +3,17 @@
 set -euo pipefail
 umask 077
 
-SCRIPT_DIR="$(dirname "$(realpath "$BASH_SOURCE[0]")")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ "$SCRIPT_DIR" = /challenge/* ]]
 then
     WORK_DIR="/challenge/work"
     CHALLENGE_DIR="/challenge"
+    SNAPSHOT_FILE="$SCRIPT_DIR/drive-c-snapshot"
 else
     WORK_DIR=$(mktemp -d)
-    SCRIPT_DIR="$(dirname "$BASH_SOURCE[0]")"
     CHALLENGE_DIR="$SCRIPT_DIR"
+    SNAPSHOT_FILE="/tmp/drive-c-snapshot-$(basename $SCRIPT_DIR)"
 fi
 
 mkdir -p "$WORK_DIR"
@@ -20,7 +21,6 @@ mkdir -p "$WORK_DIR"
 DISK_DIR="$SCRIPT_DIR/floppies"
 DRIVE_C="$WORK_DIR/drive-c.raw"
 MONITOR_PIPE="$WORK_DIR/qemu-monitor"
-SNAPSHOT_FILE="$SCRIPT_DIR/drive-c-snapshot"
 DISK_SIZE="${DISK_SIZE:-128M}"
 
 BRIDGE_NAME="br-qemu$$"
@@ -293,7 +293,7 @@ else
 
     if [ -d "$CHALLENGE_DIR/c_files" ] && [ "$(ls -A "$CHALLENGE_DIR/c_files" 2>/dev/null)" ]; then
         PART_OFFSET=$(fdisk -l "$DRIVE_C" -o Start | tail -1)
-        mcopy -i "$DRIVE_C@@$((PART_OFFSET * 512))" -s "$CHALLENGE_DIR/c_files/"* ::
+        mcopy -o -i "$DRIVE_C@@$((PART_OFFSET * 512))" -s "$CHALLENGE_DIR/c_files/"* ::
     fi
 fi
 
@@ -320,10 +320,10 @@ if cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=network"; then
 elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=a"; then
     FLOPPY_FLAG="$WORK_DIR/flag-floppy.img"
     mkfs.vfat -C "$FLOPPY_FLAG" 1440
-    mcopy -i "$FLOPPY_FLAG" /flag ::FLAG.TXT
+    mcopy -o -i "$FLOPPY_FLAG" /flag ::FLAG.TXT
 elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=c"; then
     PART_OFFSET=$(fdisk -l "$DRIVE_C" -o Start | tail -1)
-    mcopy -i "$DRIVE_C@@$((PART_OFFSET * 512))" /flag ::FLAG.TXT
+    mcopy -o -i "$DRIVE_C@@$((PART_OFFSET * 512))" /flag ::FLAG.TXT
 elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=d"; then
     qemu-img create -f raw "$WORK_DIR/drive-d" 16M
     sfdisk "$WORK_DIR/drive-d" >/dev/null 2>&1 <<EOF
@@ -332,7 +332,7 @@ start=32, type=0x01, bootable
 EOF
     PART_OFFSET=$(fdisk -l "$WORK_DIR/drive-d" -o Start | tail -1)
     mformat -i "$WORK_DIR/drive-d@@$((PART_OFFSET * 512))" -F
-    mcopy -i "$WORK_DIR/drive-d@@$((PART_OFFSET * 512))" /flag ::FLAG.TXT
+    mcopy -o -i "$WORK_DIR/drive-d@@$((PART_OFFSET * 512))" /flag ::FLAG.TXT
 fi
 
 mkfifo "${MONITOR_PIPE}.in"

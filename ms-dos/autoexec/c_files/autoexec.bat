@@ -1,0 +1,1 @@
+del c:\flag.txt
