@@ -20,7 +20,7 @@ mkdir -p "$WORK_DIR"
 DISK_DIR="$SCRIPT_DIR/floppies"
 DRIVE_C="$WORK_DIR/drive-c.raw"
 MONITOR_PIPE="$WORK_DIR/qemu-monitor"
-SNAPSHOT_FILE="$WORK_DIR/snapshot"
+SNAPSHOT_FILE="$SCRIPT_DIR/drive-c-snapshot"
 DISK_SIZE="${DISK_SIZE:-128M}"
 
 BRIDGE_NAME="br-qemu$$"
@@ -132,9 +132,8 @@ monitor_menu() {
             "paste-home" "Paste clipboard (Home after newline)" \
             "copy"      "Copy screen text to clipboard" \
             "eject"     "Eject floppy" \
-            "snapshot"  "Snapshot disk" \
             "reboot"    "Reboot system" \
-            "quit"      "Quit" \
+            "quit"      "Quit (saves snapshot)" \
             3>&1 1>&2 2>&3) || choice="quit"
 
         case "$choice" in
@@ -243,23 +242,18 @@ monitor_menu() {
                 echo "eject floppy0" > "$monitor_fifo"
                 whiptail --title "Success" --msgbox "Floppy ejected" $((menu_height / 2)) $((menu_width / 2))
                 ;;
-            snapshot)
-                whiptail --title "Snapshot" --infobox "Flushing disk and creating snapshot..." $((menu_height / 3)) $menu_width
-                # Commit any pending writes to disk
-                echo "commit ide0-hd0" > "$monitor_fifo"
-                sleep 1
-                cp "$DRIVE_C" "$SNAPSHOT_FILE"
-                whiptail --title "Success" --msgbox "Snapshot saved" $((menu_height / 2)) $menu_width
-                ;;
             reboot)
                 echo "system_reset" > "$monitor_fifo"
                 whiptail --title "Success" --msgbox "System reset sent" $((menu_height / 2)) $((menu_width / 2))
                 ;;
             quit)
-                # Only send quit if QEMU is still running
+                echo "Saving C: snapshot for next start..."
                 if [ -n "$DOS_PID" ] && kill -0 "$DOS_PID" 2>/dev/null; then
+                    echo "commit ide0-hd0" > "$monitor_fifo"
                     echo "quit" > "$monitor_fifo"
+		    wait $DOS_PID 2>/dev/null || true
                 fi
+                cp "$DRIVE_C" "$SNAPSHOT_FILE"
                 return 0
                 ;;
         esac

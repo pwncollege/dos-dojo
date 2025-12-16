@@ -8,7 +8,6 @@ The `edit` editor is a TUI (Text User Interface) that is most similar to somethi
 In this challenge, you will need to:
 
 - edit `autoexec.bat` to stop it from deleting the flag on startup
-- `snapshot` the disk using the QEMU text interface
-- `quit` the interface and relaunch it (this will use your snapshot but reload the flag into the disk)
+- `quit` the interface and relaunch it (this will  reload the flag onto the disk)
 
 Good luck!
