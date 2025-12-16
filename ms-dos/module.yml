@@ -1,14 +1,20 @@
-name: The Great MS-DOS
+name: The Great MS-DOS!
 challenges:
 - id: type
   name: cat /flag
+  privileged: true
 - id: d
   name: Changing Disks
+  privileged: true
 - id: a
   name: Reading Floppies
+  privileged: true
 - id: install
   name: Installing MS-DOS
+  privileged: true
 - id: autoexec
   name: autoexec.bat
+  privileged: true
 - id: networking
   name: MS-DOS Networking
+  privileged: true
