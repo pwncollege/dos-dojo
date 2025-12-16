@@ -4,7 +4,7 @@ The way to list a **dir**ectory in DOS is with the `dir` command!
 It works more or less like `ls`.
 For example:
 
-```
+```dos
 C:\>dir
 
  Volume in drive C is MS-DOS_6
