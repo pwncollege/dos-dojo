@@ -9,6 +9,8 @@ Now it's your turn.
 Throughout the DOS Dojo, you will learn DOS from the basics to the advanced!
 Go and experience history!
 
+**NOTE:** This dojo is still being developed! Check this space in a day or two for challenges!
+
 ----
 This dojo is a community effort!
 Contribute [on github](https://github.com/pwncollege/dos-dojo) and chat [on discord](https://discord.com/channels/750635557666816031/1450184600331751651)
