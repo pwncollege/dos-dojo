@@ -10,10 +10,12 @@ then
     WORK_DIR="/challenge/work"
     CHALLENGE_DIR="/challenge"
     SNAPSHOT_FILE="$SCRIPT_DIR/drive-c-snapshot"
+    [ -f /run/dojo/sys/workspace/privileged ] && read -n1 PRIVILEGED</run/dojo/sys/workspace/privileged || PRIVILEGED=0
 else
     WORK_DIR=$(mktemp -d)
     CHALLENGE_DIR="$SCRIPT_DIR"
     SNAPSHOT_FILE="/tmp/drive-c-snapshot-$(basename $SCRIPT_DIR)"
+    PRIVILEGED=1
 fi
 
 mkdir -p "$WORK_DIR"
@@ -145,14 +147,21 @@ monitor_menu() {
             return 0
         fi
 
+        local menu_items=(
+            "load"      "Load floppy disk"
+            "paste"     "Paste clipboard contents"
+            "paste-home" "Paste clipboard (Home after newline)"
+            "copy"      "Copy screen text to clipboard"
+            "eject"     "Eject floppy"
+            "reboot"    "Reboot system"
+        )
+        if [ "$PRIVILEGED" = "1" ]; then
+            menu_items+=("monitor" "DEBUG: QEMU monitor console")
+        fi
+        menu_items+=("quit" "Quit (saves snapshot)")
+
         choice=$(whiptail --title "QEMU Floppy/System Control" --menu "Select an action:" $menu_height $menu_width $list_height \
-            "load"      "Load floppy disk" \
-            "paste"     "Paste clipboard contents" \
-            "paste-home" "Paste clipboard (Home after newline)" \
-            "copy"      "Copy screen text to clipboard" \
-            "eject"     "Eject floppy" \
-            "reboot"    "Reboot system" \
-            "quit"      "Quit (saves snapshot)" \
+            "${menu_items[@]}" \
             3>&1 1>&2 2>&3) || choice="quit"
 
         case "$choice" in
@@ -243,6 +252,18 @@ monitor_menu() {
             reboot)
                 echo "system_reset" > "$monitor_fifo"
                 whiptail --title "Success" --msgbox "System reset sent" $((menu_height / 2)) $((menu_width / 2))
+                ;;
+            monitor)
+                clear
+                echo "QEMU Monitor - Enter commands (Ctrl-D or empty line to exit)"
+                echo "-----------------------------------------------------------"
+                tail -f "${MONITOR_PIPE}.log" 2>/dev/null &
+                local tail_pid=$!
+                while IFS= read -rep "(qemu) " cmd; do
+                    [ -z "$cmd" ] && break
+                    echo "$cmd" > "$monitor_fifo"
+                done
+                kill "$tail_pid" 2>/dev/null
                 ;;
             quit)
                 echo "Saving C: snapshot for next start..."
