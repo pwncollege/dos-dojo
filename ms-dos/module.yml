@@ -16,5 +16,5 @@ challenges:
   name: autoexec.bat
   privileged: true
 - id: networking
-  name: MS-DOS Networking
+  name: DOS Networking
   privileged: true
