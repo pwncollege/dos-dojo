@@ -18,6 +18,9 @@ challenges:
 - id: autoexec
   name: autoexec.bat
   privileged: true
+- id: doskey
+  name: doskey
+  privileged: true
 - id: networking
   name: DOS Networking
   privileged: true

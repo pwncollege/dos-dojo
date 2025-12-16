@@ -1,0 +1,54 @@
+#!/bin/bash
+# Inject flag into DOS command history before user sees the menu
+# $1 = monitor FIFO path
+#
+# This script is sourced by the launch script, so we have access to:
+# - read_vga_screen() function
+# - type_content() function
+# - WORK_DIR variable
+
+MONITOR_FIFO="$1"
+
+# Wait for DOS to boot by checking for the C:\> prompt
+for i in {1..30}; do
+    screen=$(read_vga_screen "$MONITOR_FIFO" 2>/dev/null || echo "")
+    if echo "$screen" | grep -q 'C:\\>'; then
+        break
+    fi
+    sleep 0.5
+done
+
+# Extra second for good measure
+sleep 1
+
+# Get the flag and split into three parts
+read FLAG</flag
+LEN=${#FLAG}
+PART_LEN=$(( (LEN + 2) / 3 ))
+PART1=${FLAG:0:$PART_LEN}
+PART2=${FLAG:$PART_LEN:$PART_LEN}
+PART3=${FLAG:$((PART_LEN * 2))}
+
+# Echo part 1, cls
+type_content "$MONITOR_FIFO" "echo $PART1" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.3
+type_content "$MONITOR_FIFO" "cls" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.2
+
+# Echo part 2, cls
+type_content "$MONITOR_FIFO" "echo $PART2" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.3
+type_content "$MONITOR_FIFO" "cls" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.2
+
+# Echo part 3, cls
+type_content "$MONITOR_FIFO" "echo $PART3" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.3
+type_content "$MONITOR_FIFO" "cls" ""
+echo "sendkey ret" > "$MONITOR_FIFO"
+sleep 0.2
