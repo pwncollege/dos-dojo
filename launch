@@ -314,17 +314,17 @@ ip netns exec "$FLAG_NS" ip link set lo up
 ip netns exec "$FLAG_NS" ip link set "$VETH_NS" up
 ip netns exec "$FLAG_NS" ip addr add "${FLAG_SERVER_IP}/24" dev "$VETH_NS"
 
-if cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=network"; then
+if cat "$CHALLENGE_DIR/.config.ini" 2>/dev/null | grep -q "flag=network"; then
     ip netns exec "$FLAG_NS" socat "TCP-LISTEN:${FLAG_SERVER_PORT},bind=${FLAG_SERVER_IP},reuseaddr,fork" SYSTEM:"cat /flag" &
     FLAG_SERVER_PID=$!
-elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=a"; then
+elif cat "$CHALLENGE_DIR/.config.ini" 2>/dev/null | grep -q "flag=a"; then
     FLOPPY_FLAG="$WORK_DIR/flag-floppy.img"
     mkfs.vfat -C "$FLOPPY_FLAG" 1440
     mcopy -o -i "$FLOPPY_FLAG" /flag ::FLAG.TXT
-elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=c"; then
+elif cat "$CHALLENGE_DIR/.config.ini" 2>/dev/null | grep -q "flag=c"; then
     PART_OFFSET=$(fdisk -l "$DRIVE_C" -o Start | tail -1)
     mcopy -o -i "$DRIVE_C@@$((PART_OFFSET * 512))" /flag ::FLAG.TXT
-elif cat "$CHALLENGE_DIR/.config.ini" | grep -q "flag=d"; then
+elif cat "$CHALLENGE_DIR/.config.ini" 2>/dev/null | grep -q "flag=d"; then
     qemu-img create -f raw "$WORK_DIR/drive-d" 16M
     sfdisk "$WORK_DIR/drive-d" >/dev/null 2>&1 <<EOF
 label: dos
