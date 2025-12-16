@@ -5,8 +5,7 @@ umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ "$SCRIPT_DIR" = /challenge/* ]]
-then
+if [ -d /run/dojo ]; then
     WORK_DIR="/challenge/work"
     CHALLENGE_DIR="/challenge"
     SNAPSHOT_FILE="$SCRIPT_DIR/drive-c-snapshot"
