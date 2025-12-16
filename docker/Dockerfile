@@ -4,12 +4,15 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         qemu-system-x86 \
         qemu-utils \
-        parted \
-        iproute2 \
-        socat \
+        util-linux \
+        dosfstools \
         whiptail \
+        iproute2 \
+        parted \
+        socat \
         xclip \
-        xsel && \
-    rm -rf /var/lib/apt/lists/*
+        fdisk \
+        xsel \
+    && rm -rf /var/lib/apt/lists/*
 
 ADD --chown=0:0 --chmod=6755 http://github.com/pwncollege/exec-suid/releases/latest/download/exec-suid /usr/bin/exec-suid
