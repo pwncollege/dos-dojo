@@ -1,7 +1,10 @@
 name: The Great MS-DOS!
 challenges:
 - id: type
-  name: cat /flag
+  name: cat.exe (type)
+  privileged: true
+- id: dir
+  name: ls.exe (dir)
   privileged: true
 - id: d
   name: Changing Disks
