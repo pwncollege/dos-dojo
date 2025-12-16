@@ -9,6 +9,7 @@ RUN apt-get update && \
         whiptail \
         iproute2 \
         parted \
+        mtools \
         socat \
         xclip \
         fdisk \
