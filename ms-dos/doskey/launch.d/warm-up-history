@@ -29,23 +29,23 @@ PART3=${FLAG:$((PART_LEN * 2))}
 # Echo part 1, cls
 type_content "$MONITOR_FIFO" "echo $PART1" ""
 echo "sendkey ret" > "$MONITOR_FIFO"
-sleep 0.3
+sleep 0.05
 type_content "$MONITOR_FIFO" "cls" ""
 echo "sendkey ret" > "$MONITOR_FIFO"
-sleep 0.2
+sleep 0.05
 
 # Echo part 2, cls
 type_content "$MONITOR_FIFO" "echo $PART2" ""
 echo "sendkey ret" > "$MONITOR_FIFO"
-sleep 0.3
+sleep 0.05
 type_content "$MONITOR_FIFO" "cls" ""
 echo "sendkey ret" > "$MONITOR_FIFO"
-sleep 0.2
+sleep 0.05
 
 # Echo part 3, cls
 type_content "$MONITOR_FIFO" "echo $PART3" ""
 echo "sendkey ret" > "$MONITOR_FIFO"
-sleep 0.3
+sleep 0.05
 type_content "$MONITOR_FIFO" "cls" ""
 echo "sendkey ret" > "$MONITOR_FIFO"
-sleep 0.2
+sleep 0.05
