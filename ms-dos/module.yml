@@ -1,4 +1,6 @@
 name: The Great MS-DOS!
+visibility:
+  start: "2026-12-09T00:00:00+00:00"
 challenges:
 - id: type
   name: cat /flag
