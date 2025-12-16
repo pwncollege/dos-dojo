@@ -10,7 +10,10 @@ then
     WORK_DIR="/challenge/work"
     CHALLENGE_DIR="/challenge"
     SNAPSHOT_FILE="$SCRIPT_DIR/drive-c-snapshot"
-    [ -f /run/dojo/sys/workspace/privileged ] && read -n1 PRIVILEGED</run/dojo/sys/workspace/privileged || PRIVILEGED=0
+    PRIVILEGED=0
+    if [ -f /run/dojo/sys/workspace/privileged ]; then
+        read -n1 PRIVILEGED < /run/dojo/sys/workspace/privileged
+    fi
 else
     WORK_DIR=$(mktemp -d)
     CHALLENGE_DIR="$SCRIPT_DIR"
