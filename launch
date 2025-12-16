@@ -331,7 +331,7 @@ label: dos
 start=32, type=0x01, bootable
 EOF
     PART_OFFSET=$(fdisk -l "$WORK_DIR/drive-d" -o Start | tail -1)
-    mformat -i "$WORK_DIR/drive-d@@$((PART_OFFSET * 512))" -F
+    mformat -i "$WORK_DIR/drive-d@@$((PART_OFFSET * 512))"
     mcopy -o -i "$WORK_DIR/drive-d@@$((PART_OFFSET * 512))" /flag ::FLAG.TXT
 fi
 
