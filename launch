@@ -24,8 +24,10 @@ mkdir -p "$WORK_DIR"
 
 DISK_DIR="$SCRIPT_DIR/floppies"
 DRIVE_C="$WORK_DIR/drive-c.raw"
+DRIVE_D="$WORK_DIR/drive-d.raw"
 MONITOR_PIPE="$WORK_DIR/qemu-monitor"
 DISK_SIZE="${DISK_SIZE:-128M}"
+USER_D_DIR="/home/hacker/d:"
 
 BRIDGE_NAME="br-qemu$$"
 TAP_DOS="tap-dos$$"
@@ -127,6 +129,51 @@ type_content() {
             fi
         fi
     done <<< "$content"
+}
+
+is_8_3_filename() {
+    [[ "$1" =~ ^[A-Za-z0-9_~!@#$%^\&\(\)\-\{\}\']{1,8}(\.[A-Za-z0-9_~!@#$%^\&\(\)\-\{\}\']{1,3})?$ ]]
+}
+
+copy_dir_to_dos() {
+    local src="$1" img="$2"
+    local real_src=$(realpath -m "$src" 2>/dev/null) || return 0
+    [ ! -d "$real_src" ] && return 0
+    local part_offset=$(fdisk -l "$img" -o Start | tail -1)
+
+    for f in "$real_src"/*; do
+        [ ! -f "$f" ] && continue
+        local real_f=$(realpath "$f" 2>/dev/null) || continue
+        [[ "$real_f" != "$real_src"/* ]] && continue
+        local name=$(basename "$f")
+        is_8_3_filename "$name" || continue
+        local upper=$(echo "$name" | tr '[:lower:]' '[:upper:]')
+        [ "$upper" = "FLAG.TXT" ] && continue
+        mcopy -o -i "$img@@$((part_offset * 512))" "$real_f" "::$upper" 2>/dev/null || true
+    done
+}
+
+# Runs as hacker user to prevent symlink privilege escalation
+copy_dos_to_dir() {
+    local img="$1" dest="$2"
+    local hacker_user=$(stat -c '%U' /home/hacker 2>/dev/null) || return 0
+    [ -z "$hacker_user" ] && return 0
+    local part_offset=$(fdisk -l "$img" -o Start | tail -1)
+    local tmp=$(mktemp -d)
+    chmod 755 "$tmp"
+    mcopy -s -i "$img@@$((part_offset * 512))" "::*" "$tmp/" 2>/dev/null || true
+    runuser -u "$hacker_user" -- mkdir -p "$dest" 2>/dev/null || true
+
+    for f in "$tmp"/*; do
+        [ ! -f "$f" ] && continue
+        local name=$(basename "$f")
+        [[ "$(echo "$name" | tr '[:lower:]' '[:upper:]')" = "FLAG.TXT" ]] && continue
+        chmod 644 "$f"
+        local existing=$(ls "$dest" 2>/dev/null | grep -ix "$name" | head -1)
+        [ -n "$existing" ] && name="$existing"
+        runuser -u "$hacker_user" -- cp "$f" "$dest/$name" 2>/dev/null || true
+    done
+    rm -rf "$tmp"
 }
 
 monitor_menu() {
@@ -271,10 +318,12 @@ monitor_menu() {
                 echo "Saving C: snapshot for next start..."
                 if [ -n "$DOS_PID" ] && kill -0 "$DOS_PID" 2>/dev/null; then
                     echo "commit ide0-hd0" > "$monitor_fifo"
+                    echo "commit ide0-hd1" > "$monitor_fifo"
                     echo "quit" > "$monitor_fifo"
-		    wait $DOS_PID 2>/dev/null || true
+                    wait $DOS_PID 2>/dev/null || true
                 fi
                 cp "$DRIVE_C" "$SNAPSHOT_FILE"
+                copy_dos_to_dir "$DRIVE_D" "$USER_D_DIR"
                 return 0
                 ;;
         esac
@@ -292,7 +341,7 @@ cleanup() {
     ip link del "$VETH_HOST" 2>/dev/null || true
     ip link set "$BRIDGE_NAME" down 2>/dev/null || true
     ip link del "$BRIDGE_NAME" 2>/dev/null || true
-    rm -f "$DRIVE_C"
+    rm -f "$DRIVE_C" "$DRIVE_D"
     exit 0
 }
 
@@ -317,6 +366,22 @@ else
         mcopy -o -i "$DRIVE_C@@$((PART_OFFSET * 512))" -s "$CHALLENGE_DIR/c_files/"* ::
     fi
 fi
+
+# Create drive-d (always, like drive-c)
+if [ -f "$CHALLENGE_DIR/drive-d" ]; then
+    cp "$CHALLENGE_DIR/drive-d" "$DRIVE_D"
+else
+    qemu-img create -f raw "$DRIVE_D" 16M
+    sfdisk "$DRIVE_D" >/dev/null 2>&1 <<EOF
+label: dos
+start=32, type=0x01, bootable
+EOF
+    PART_OFFSET=$(fdisk -l "$DRIVE_D" -o Start | tail -1)
+    mformat -i "$DRIVE_D@@$((PART_OFFSET * 512))"
+fi
+
+# Copy user files from /home/hacker/d:/ to D:
+copy_dir_to_dos "$USER_D_DIR" "$DRIVE_D"
 
 ip link add "$BRIDGE_NAME" type bridge
 ip link set "$BRIDGE_NAME" up
@@ -346,33 +411,19 @@ elif cat "$CHALLENGE_DIR/.config.ini" 2>/dev/null | grep -q "flag=c"; then
     PART_OFFSET=$(fdisk -l "$DRIVE_C" -o Start | tail -1)
     mcopy -o -i "$DRIVE_C@@$((PART_OFFSET * 512))" /flag ::FLAG.TXT
 elif cat "$CHALLENGE_DIR/.config.ini" 2>/dev/null | grep -q "flag=d"; then
-    qemu-img create -f raw "$WORK_DIR/drive-d" 16M
-    sfdisk "$WORK_DIR/drive-d" >/dev/null 2>&1 <<EOF
-label: dos
-start=32, type=0x01, bootable
-EOF
-    PART_OFFSET=$(fdisk -l "$WORK_DIR/drive-d" -o Start | tail -1)
-    mformat -i "$WORK_DIR/drive-d@@$((PART_OFFSET * 512))"
-    mcopy -o -i "$WORK_DIR/drive-d@@$((PART_OFFSET * 512))" /flag ::FLAG.TXT
+    PART_OFFSET=$(fdisk -l "$DRIVE_D" -o Start | tail -1)
+    mcopy -o -i "$DRIVE_D@@$((PART_OFFSET * 512))" /flag ::FLAG.TXT
 fi
 
 mkfifo "${MONITOR_PIPE}.in"
 mkfifo "${MONITOR_PIPE}.out"
-
-if [ -f "$WORK_DIR/drive-d" ]; then
-    DRIVE_D="-drive file="$WORK_DIR/drive-d",format=raw,if=ide,index=2"
-elif [ -f "$CHALLENGE_DIR/drive-d" ]; then
-    DRIVE_D="-drive file="$CHALLENGE_DIR/drive-d",format=raw,if=ide,index=2"
-else
-    DRIVE_D=""
-fi
 
 qemu-system-x86_64 \
     -name dos \
     -m 16M \
     -smp 1 \
     -drive file="$DRIVE_C",format=raw,if=ide \
-    $DRIVE_D \
+    -drive file="$DRIVE_D",format=raw,if=ide,index=2 \
     -boot d \
     -netdev tap,id=net0,ifname="$TAP_DOS",script=no,downscript=no \
     -device pcnet,netdev=net0,mac=52:54:00:12:34:56 \
