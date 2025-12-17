@@ -140,18 +140,22 @@ should_sync_filename() {
 
 copy_dir_to_dos() {
     local src="$1" img="$2"
-    local real_src=$(realpath -m "$src" 2>/dev/null) || return 0
-    [ ! -d "$real_src" ] && return 0
+    local hacker_user=$(stat -c '%U' /home/hacker 2>/dev/null) || return 0
+    [ -z "$hacker_user" ] && return 0
+    [ ! -d "$src" ] && return 0
     local part_offset=$(fdisk -l "$img" -o Start | tail -1)
 
-    for f in "$real_src"/*; do
+    for f in "$src"/*; do
         [ ! -f "$f" ] && continue
-        local real_f=$(realpath "$f" 2>/dev/null) || continue
-        [[ "$real_f" != "$real_src"/* ]] && continue
         local name=$(basename "$f")
         should_sync_filename "$name" || continue
         local upper=$(echo "$name" | tr '[:lower:]' '[:upper:]')
-        mcopy -omp -i "$img@@$((part_offset * 512))" "$real_f" "::$upper" 2>/dev/null || true
+        # Copy via temp file as hacker user to prevent symlink privilege escalation
+        local tmp=$(mktemp -u)
+        if runuser -u "$hacker_user" -- cp "$f" "$tmp" 2>/dev/null; then
+            mcopy -omp -i "$img@@$((part_offset * 512))" "$tmp" "::$upper" 2>/dev/null || true
+        fi
+        rm -f "$tmp"
     done
 }
 
