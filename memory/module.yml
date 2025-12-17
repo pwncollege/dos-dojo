@@ -1,5 +1,5 @@
 name: DOS Memory
 challenges:
-- id: type
+- id: memory
   name: Unprotected Memory
   privileged: true
