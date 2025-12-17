@@ -1,0 +1,20 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Read the flag and generate a C program that puts it at address 0x1337
+FLAG=$(cat /flag 2>/dev/null || echo "pwn.college{test_flag}")
+
+cat > "$SCRIPT_DIR/c_files/FLAG.C" << CEOF
+#include <dos.h>
+#include <string.h>
+
+int main(void) {
+    char far *ptr = (char far *)MK_FP(0, 0x1337);
+    char *flag = "$FLAG";
+    _fstrcpy(ptr, flag);
+    return 0;
+}
+CEOF
+
+chmod 600 "$SCRIPT_DIR/c_files/FLAG.C"
