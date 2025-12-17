@@ -2,9 +2,8 @@ In modern operating systems, each process has its own isolated memory space.
 One process cannot read another process's memory without special permissions.
 This is called memory protection and, as you learn in [Kernel Security](/system-security/kernel-security) it's a fundamental security feature.
 
-DOS has no such protection.
-It's just too old!
-
+However, back when DOS launched, hardware with this memory protection functionality was too expensive and not generally available, and by the time this hardware became widely available in the 1990s, Microsoft's focus was on Windows.
+As a result, DOS has no such protection.
 In DOS, all programs share the same flat memory space.
 Any program can read or write to any memory address.
 This means if a program stores sensitive data in memory, any other program can access it.
