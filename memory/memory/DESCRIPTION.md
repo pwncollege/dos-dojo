@@ -12,19 +12,19 @@ This means if a program stores sensitive data in memory, any other program can a
 When this challenge starts, a program runs that stores the flag at memory address `0x1337`.
 The program then deletes itself, leaving no trace on disk.
 
-But the flag is still in memory.
-Your task: write a program that reads the flag directly from memory address `0x1337`.
+But the flag is still in memory!
+Can you get it out?
+
+One way to get it out would be to do so with another program (and you can do that, using the installed TurboC++ compiler to compile your C code).
+Another is to use the built-in [DOS debugger](https://thestarman.pcministry.com/asm/debug/debug.htm) (the `debug` command)!
 
 ----
 **HINT:**
-Use Turbo C++ (installed in `C:\TC`) to compile your program.
-
-**HINT:**
-DOS (and 16-bit x86 in general) had [segmented memory](https://en.wikipedia.org/wiki/X86_memory_segmentation), which allowed 16-bit programs to access more than 64k of memory.
+DOS (and 16-bit x86 in general) had [segmented memory](https://en.wikipedia.org/wiki/X86_memory_segmentation), which allowed 16-bit programs to access more than 64kb of memory.
 This was a massive pain in the butt, but compilers introduced the concept of a [far pointer](https://en.wikipedia.org/wiki/Far_pointer) to deal with it.
 A far pointer allows you to access arbitrary memory segments, which you will need to do here.
-You can create a far pointer with the `MK_FP` macro.
-Go ahead and look it up in the TurboC++ help files!
+In C, you can create a far pointer with the `MK_FP` macro (go ahead and look it up in the TurboC++ help files)!
+In the debugger, you can reference it as `SEGMENT:OFFSET`, both of which are 16-bit and which make up the Most Significant and Least Significant part of a 32-bit address.
 
 **HINT:**
 Heavy use of the system will probably cause the flag to get overwritten.
