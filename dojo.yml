@@ -7,3 +7,4 @@ award:
 privileged: true
 modules:
 - id: "ms-dos"
+- id: "memory"
