@@ -41,6 +41,7 @@ FLAG_SERVER_PORT=1337
 DOS_PID=""
 CAT_PID=""
 FLAG_SERVER_PID=""
+SYNC_PID=""
 
 if [ -z "${DISPLAY-}" ]; then
     echo "You must run this script from the desktop environment!"
@@ -131,8 +132,10 @@ type_content() {
     done <<< "$content"
 }
 
-is_8_3_filename() {
-    [[ "$1" =~ ^[A-Za-z0-9_~!@#$%^\&\(\)\-\{\}\']{1,8}(\.[A-Za-z0-9_~!@#$%^\&\(\)\-\{\}\']{1,3})?$ ]]
+should_sync_filename() {
+    local name="$1"
+    local upper=$(echo "$name" | tr '[:lower:]' '[:upper:]')
+    [[ "$upper" != "FLAG.TXT" ]] && [[ "$name" =~ ^[A-Za-z0-9_~!@#$%^\&\(\)\-\{\}\']{1,8}(\.[A-Za-z0-9_~!@#$%^\&\(\)\-\{\}\']{1,3})?$ ]]
 }
 
 copy_dir_to_dos() {
@@ -146,14 +149,12 @@ copy_dir_to_dos() {
         local real_f=$(realpath "$f" 2>/dev/null) || continue
         [[ "$real_f" != "$real_src"/* ]] && continue
         local name=$(basename "$f")
-        is_8_3_filename "$name" || continue
+        should_sync_filename "$name" || continue
         local upper=$(echo "$name" | tr '[:lower:]' '[:upper:]')
-        [ "$upper" = "FLAG.TXT" ] && continue
-        mcopy -o -i "$img@@$((part_offset * 512))" "$real_f" "::$upper" 2>/dev/null || true
+        mcopy -omp -i "$img@@$((part_offset * 512))" "$real_f" "::$upper" 2>/dev/null || true
     done
 }
 
-# Runs as hacker user to prevent symlink privilege escalation
 copy_dos_to_dir() {
     local img="$1" dest="$2"
     local hacker_user=$(stat -c '%U' /home/hacker 2>/dev/null) || return 0
@@ -161,7 +162,7 @@ copy_dos_to_dir() {
     local part_offset=$(fdisk -l "$img" -o Start | tail -1)
     local tmp=$(mktemp -d)
     chmod 755 "$tmp"
-    mcopy -s -i "$img@@$((part_offset * 512))" "::*" "$tmp/" 2>/dev/null || true
+    mcopy -smp -i "$img@@$((part_offset * 512))" "::*" "$tmp/" 2>/dev/null || true
     runuser -u "$hacker_user" -- mkdir -p "$dest" 2>/dev/null || true
 
     for f in "$tmp"/*; do
@@ -171,6 +172,8 @@ copy_dos_to_dir() {
         chmod 644 "$f"
         local existing=$(ls "$dest" 2>/dev/null | grep -ix "$name" | head -1)
         [ -n "$existing" ] && name="$existing"
+        [ -f "$dest/$name" ] && [ ! "$f" -nt "$dest/$name" ] && continue
+        # Runs as hacker user to prevent symlink privilege escalation
         runuser -u "$hacker_user" -- cp "$f" "$dest/$name" 2>/dev/null || true
     done
     rm -rf "$tmp"
@@ -334,6 +337,7 @@ cleanup() {
     [ -n "$FLAG_SERVER_PID" ] && kill "$FLAG_SERVER_PID" 2>/dev/null || true
     [ -n "$DOS_PID" ] && kill "$DOS_PID" 2>/dev/null || true
     [ -n "$CAT_PID" ] && kill "$CAT_PID" 2>/dev/null || true
+    [ -n "$SYNC_PID" ] && kill "$SYNC_PID" 2>/dev/null || true
     rm -f "${MONITOR_PIPE}.in" "${MONITOR_PIPE}.out" 2>/dev/null || true
     ip netns del "$FLAG_NS" 2>/dev/null || true
     ip link set "$TAP_DOS" down 2>/dev/null || true
@@ -422,6 +426,7 @@ qemu-system-x86_64 \
     -name dos \
     -m 16M \
     -smp 1 \
+    -rtc base=localtime \
     -drive file="$DRIVE_C",format=raw,if=ide \
     -drive file="$DRIVE_D",format=raw,if=ide,index=2 \
     -boot d \
@@ -440,6 +445,17 @@ CAT_PID=$!
 
 # Wait a moment for QEMU to open the pipes
 sleep 1
+
+# Background D: sync - every 5s, sync files modified in last minute
+(
+    set -x
+    p=$(($(fdisk -l "$DRIVE_D" -o Start | tail -1)*512))
+    while sleep 5; do
+        t=$(date +"%-H:%M"); t0=$(date -d "-1min" +"%-H:%M")
+        mdir -i "$DRIVE_D@@$p" 2>/dev/null | grep -qE " ($t|$t0) " && copy_dos_to_dir "$DRIVE_D" "$USER_D_DIR"
+    done
+) >& $WORK_DIR/sync.log &
+SYNC_PID=$!
 
 if [ -d "$CHALLENGE_DIR/launch.d" ]; then
     for script in "$CHALLENGE_DIR/launch.d"/*; do
