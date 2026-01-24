@@ -8,11 +8,11 @@ int ctrlbrk_handler(void) {
 }
 
 int main(void) {
-    ctrlbrk(ctrlbrk_handler);
     char buf[128];
     char filename[128];
     FILE *fp;
 
+    ctrlbrk(ctrlbrk_handler);
     printf("Enter filename: ");
     gets(filename);
 
