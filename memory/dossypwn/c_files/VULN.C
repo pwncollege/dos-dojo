@@ -3,7 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+int ctrlbrk_handler(void) {
+    return 1;
+}
+
 int main(void) {
+    ctrlbrk(ctrlbrk_handler);
     char buf[128];
     char filename[128];
     FILE *fp;
