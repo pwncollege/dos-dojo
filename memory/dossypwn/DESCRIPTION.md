@@ -9,6 +9,13 @@ Go and learn what once was, and what hackers did not even understand until it wa
 ----
 **REMINDER:**
 Files from `/home/hacker/d:/` are copied to `D:` when you launch DOS.
+You can copy files to the `D:` drive in DOS, and they should be synchronized out to `/home/hacker/d:/` within a few seconds.
 
 **REMINDER:**
 The flag is in `C:\FLAG.TXT`.
+
+**REMINDER:**
+The challenge files are in `/challenge`, and the initial contents of the `C:` drive are in `/challenge/c_files`.
+
+**HINT:**
+You can start this challenge in Privileged Mode and edit `/challenge/c_files` before starting the challenge, allowing you to modify `VULN.C` and `AUTOEXEC.BAT` for debugging.
