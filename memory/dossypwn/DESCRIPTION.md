@@ -8,7 +8,7 @@ Go and learn what once was, and what hackers did not even understand until it wa
 
 ----
 **REMINDER:**
-Files from `/home/hacker/d/` are copied to `D:` when you launch DOS.
+Files from `/home/hacker/d:/` are copied to `D:` when you launch DOS.
 
 **REMINDER:**
 The flag is in `C:\FLAG.TXT`.
