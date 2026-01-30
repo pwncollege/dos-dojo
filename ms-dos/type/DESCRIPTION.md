@@ -30,4 +30,4 @@ So, boot up your DOS (using `/challenge/launch`), and read the flag!
 ----
 *NOTE: This challenge requires a GUI to interact with the DOS machine, and so must be accessed through the [desktop interface](https://pwn.college/workspace/desktop).*
 
-*NOTE: You can't select text directly from DOS! That technology simply didn't exist. However, you can use the "copy" functionality on the challenge Text User Interface to copy the whole screen to the clopboard, and extract the flag from there!
+*NOTE: You can't select text directly from DOS! That technology simply didn't exist. However, you can use the "copy" functionality on the challenge Text User Interface to copy the whole screen to the clipboard, and extract the flag from there!
