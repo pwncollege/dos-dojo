@@ -1,0 +1,5 @@
+name: DOS Memory
+challenges:
+- id: dossymem
+  name: Dossy Mem 1
+  privileged: true
